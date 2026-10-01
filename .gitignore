@@ -1,0 +1,24 @@
+# Sorties de compilation Code::Blocks
+bin/
+obj/
+*.o
+*.exe
+*.out
+
+# Fichiers personnels de Code::Blocks
+*.layout
+*.depend
+
+# Sauvegardes et fichiers temporaires
+*.save-all
+*~
+*.bak
+*.tmp
+
+# Éditeur
+.vscode/
+.idea/
+
+# Système
+.DS_Store
+Thumbs.db
