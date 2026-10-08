@@ -6,6 +6,7 @@
 #endif
 #include <cstdlib>
 
+#include "Araignee.h"
 char presse;
 int anglex, angley, x, y, xold, yold;
 
@@ -64,6 +65,8 @@ void affichage() {
   glLoadIdentity();
   glRotatef(angley, 1.0, 0.0, 0.0);
   glRotatef(anglex, 0.0, 1.0, 0.0);
+  Araignee mkb;
+  mkb.dessiner();
 
   // Repère
   // axe x en rouge

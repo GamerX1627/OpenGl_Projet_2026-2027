@@ -31,6 +31,17 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Linker>
+			<Add library="GLU" />
+			<Add library="GL" />
+			<Add library="glut" />
+			<Add library="jpeg" />
+		</Linker>
+		<Unit filename="Araignee.cpp" />
+		<Unit filename="Araignee.h" />
+		<Unit filename="camera.cpp" />
+		<Unit filename="camera.h" />
+		<Unit filename="main.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>
