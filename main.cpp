@@ -67,7 +67,6 @@ void affichage() {
   glRotatef(anglex, 0.0, 1.0, 0.0);
   Araignee mkb;
   mkb.dessiner();
-
   // Repère
   // axe x en rouge
   glBegin(GL_LINES);
