@@ -11,18 +11,26 @@ public:
 private:
   float angleHanche;
   float angleGenou;
-
+  float angleCheville;
+  // dimensions Tête;
+  float rayonTete;
   //dimensions Cephalothorax
-  float rayonCephalothorax=0.25f;
-  float valEtire=rayonCephalothorax/1.1; //vaut rayonCephalo/1.1 dans notre cas pour avoir des dimensions qui sont potables
-  float hautCephalo=rayonCephalothorax/2.0f; // vaudra rayonCephalo/2
+  float rayonCephalothorax;
+  float valEtire; //vaut rayonCephalo/1.1 dans notre cas pour avoir des dimensions qui sont potables
+  float hautCephalo; // vaudra rayonCephalo/2
 
-  //dimensions patte;
-  float longueurCuisse=0.5f;
-  float rayonCuisse=0.024f;
-  
+  /*dimensions patte;*/
+  //cuisse
+  float longueurCuisse;
+  float rayonCuisse;
+  //jambe
+  float longueurJambe;
+  float rayonJambe;
+  //pied
+  float longueurPied;
+  float rayonPied;
   //dimensions rotule (articulation)
-  float rayonRotule=0.034;
+  float rayonRotule;
 
   float rayonAbdomen; //pour le moment je ne sais pas quoi faire de cette valeur mais je la garde au cas où
   /**

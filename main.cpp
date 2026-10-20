@@ -1,14 +1,20 @@
 #include <GL/freeglut_std.h>
+#include <iostream>
 #ifdef __APPLE__
 #include <GLUT/glut.h> /* Pour Mac OS X */
 #else
 #include <GL/freeglut.h> /* Pour les autres systemes */
 #endif
 #include <cstdlib>
-
 #include "Araignee.h"
 char presse;
 int anglex, angley, x, y, xold, yold;
+
+/* gestion du zoom */
+double zoom = 1.0;            // > 1 : on dezoome, < 1 : on zoome
+const double DEMI_BASE = 2.0; // demi-taille de la zone visible pour zoom = 1
+const double ZOOM_MIN = 0.1;
+const double ZOOM_MAX = 20.0;
 
 // prototypes de mes fonctions
 void affichage();
@@ -18,6 +24,9 @@ void idle();
 void special();
 void mouse(int bouton, int etat, int x, int y);
 void mousemotion(int x, int y);
+void setProjection();
+void changerZoom(double facteur);
+void molette(int roue, int sens, int x, int y);
 
 // fonction main qui affiche la fenêtre et qui permet de visualiser tout ce que
 // j'ai fait jusque là
@@ -28,7 +37,7 @@ int main(int argc, char **argv) {
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
   glutInitWindowPosition(200, 200);
-  glutInitWindowSize(500, 500);
+  glutInitWindowSize(1920, 1080);
   glutCreateWindow("Araignee");
 
   /* Initialisation d'OpenGL */
@@ -43,10 +52,40 @@ int main(int argc, char **argv) {
   glutReshapeFunc(reshape);
   glutMouseFunc(mouse);
   glutMotionFunc(mousemotion);
+  glutMouseWheelFunc(molette); // molette de la souris
 
   /* Entree dans la boucle principale glut */
   glutMainLoop();
   return 0;
+}
+
+// definit la projection orthographique en fonction du zoom
+void setProjection() {
+  double demi = DEMI_BASE * zoom;
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(-demi, demi, -demi, demi, -100.0, 100.0);
+  glMatrixMode(GL_MODELVIEW);
+}
+
+// multiplie le zoom par un facteur (en le bornant) et redessine
+void changerZoom(double facteur) {
+  zoom *= facteur;
+  if (zoom < ZOOM_MIN)
+    zoom = ZOOM_MIN;
+  if (zoom > ZOOM_MAX)
+    zoom = ZOOM_MAX;
+  setProjection();
+  glutPostRedisplay();
+}
+
+// molette de la souris
+void molette(int roue, int sens, int x, int y) {
+  if (sens > 0)
+    changerZoom(1.0 / 1.1); // molette vers l'avant : zoom
+  else
+    changerZoom(1.1); // molette vers l'arriere : dezoom
 }
 
 void reshape(int x, int y) {
@@ -54,6 +93,8 @@ void reshape(int x, int y) {
     glViewport(0, (y - x) / 2, x, x);
   else
     glViewport((x - y) / 2, 0, y, y);
+
+  setProjection(); // (re)definit la projection
 }
 
 void affichage() {
@@ -62,6 +103,7 @@ void affichage() {
   dans la scène*/
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glShadeModel(GL_SMOOTH);
+  glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glRotatef(angley, 1.0, 0.0, 0.0);
   glRotatef(anglex, 0.0, 1.0, 0.0);
@@ -119,6 +161,13 @@ void clavier(unsigned char touche, int x, int y) {
     glPolygonMode(GL_FRONT, GL_FILL);
     glPolygonMode(GL_FRONT, GL_LINE);
     glutPostRedisplay();
+    break;
+  case '-': // dezoomer
+    changerZoom(1.1);
+    break;
+  case '+': // zoomer
+  case '=': // meme touche que '+' sans Maj sur un clavier AZERTY
+    changerZoom(1.0 / 1.1);
     break;
   case 'q': /*la touche 'q' permet de quitter le programme */
     exit(0);
