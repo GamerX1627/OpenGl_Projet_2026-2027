@@ -1,4 +1,3 @@
-#include <GL/freeglut_std.h>
 #include <iostream>
 #ifdef __APPLE__
 #include <GLUT/glut.h> /* Pour Mac OS X */
@@ -7,26 +6,25 @@
 #endif
 #include <cstdlib>
 #include "Araignee.h"
-char presse;
-int anglex, angley, x, y, xold, yold;
+#include "camera.h"
 
-/* gestion du zoom */
-double zoom = 1.0;            // > 1 : on dezoome, < 1 : on zoome
-const double DEMI_BASE = 2.0; // demi-taille de la zone visible pour zoom = 1
-const double ZOOM_MIN = 0.1;
-const double ZOOM_MAX = 20.0;
+Camera camera;
+Araignee mkb;
+
+/* gestion de la souris */
+char presse;
+int xold, yold;
+
+const GLfloat PAS_ZOOM = 0.5f;     // déplacement de la caméra pour z / Z
+const GLfloat PAS_ROTATION = 5.0f; // rotation de la caméra pour les flèches
 
 // prototypes de mes fonctions
 void affichage();
 void clavier(unsigned char touche, int x, int y);
+void clavierSpecial(int touche, int x, int y);
 void reshape(int x, int y);
-void idle();
-void special();
 void mouse(int bouton, int etat, int x, int y);
 void mousemotion(int x, int y);
-void setProjection();
-void changerZoom(double facteur);
-void molette(int roue, int sens, int x, int y);
 
 // fonction main qui affiche la fenêtre et qui permet de visualiser tout ce que
 // j'ai fait jusque là
@@ -49,65 +47,33 @@ int main(int argc, char **argv) {
   /* enregistrement des fonctions de rappel */
   glutDisplayFunc(affichage);
   glutKeyboardFunc(clavier);
+  glutSpecialFunc(clavierSpecial); // flèches
   glutReshapeFunc(reshape);
   glutMouseFunc(mouse);
   glutMotionFunc(mousemotion);
-  glutMouseWheelFunc(molette); // molette de la souris
 
   /* Entree dans la boucle principale glut */
   glutMainLoop();
   return 0;
 }
 
-// definit la projection orthographique en fonction du zoom
-void setProjection() {
-  double demi = DEMI_BASE * zoom;
+void reshape(int w, int h) {
+  if (h == 0)
+    h = 1;
+  glViewport(0, 0, w, h); // taille du cadre d'affichage dans la fenêtre
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(-demi, demi, -demi, demi, -100.0, 100.0);
+  gluPerspective(60.0, (float)w / (float)h, 0.5, 50.0);
   glMatrixMode(GL_MODELVIEW);
 }
 
-// multiplie le zoom par un facteur (en le bornant) et redessine
-void changerZoom(double facteur) {
-  zoom *= facteur;
-  if (zoom < ZOOM_MIN)
-    zoom = ZOOM_MIN;
-  if (zoom > ZOOM_MAX)
-    zoom = ZOOM_MAX;
-  setProjection();
-  glutPostRedisplay();
-}
-
-// molette de la souris
-void molette(int roue, int sens, int x, int y) {
-  if (sens > 0)
-    changerZoom(1.0 / 1.1); // molette vers l'avant : zoom
-  else
-    changerZoom(1.1); // molette vers l'arriere : dezoom
-}
-
-void reshape(int x, int y) {
-  if (x < y)
-    glViewport(0, (y - x) / 2, x, x);
-  else
-    glViewport((x - y) / 2, 0, y, y);
-
-  setProjection(); // (re)definit la projection
-}
-
 void affichage() {
-  /*à ne pas toucher pour le moment.... ses
-  fonctions sont essentielles pour faire tourner la camera
-  dans la scène*/
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glShadeModel(GL_SMOOTH);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  glRotatef(angley, 1.0, 0.0, 0.0);
-  glRotatef(anglex, 0.0, 1.0, 0.0);
-  Araignee mkb;
+  camera.placer();
   mkb.dessiner();
   // Repère
   // axe x en rouge
@@ -159,19 +125,43 @@ void clavier(unsigned char touche, int x, int y) {
     break;
   case 'a': // Les faces à l'envers s'affichent en fil de fer
     glPolygonMode(GL_FRONT, GL_FILL);
-    glPolygonMode(GL_FRONT, GL_LINE);
+    glPolygonMode(GL_BACK, GL_LINE);
     glutPostRedisplay();
     break;
-  case '-': // dezoomer
-    changerZoom(1.1);
+  case 'z': // la caméra se rapproche
+    camera.zoomer(-PAS_ZOOM);
+    glutPostRedisplay();
     break;
-  case '+': // zoomer
-  case '=': // meme touche que '+' sans Maj sur un clavier AZERTY
-    changerZoom(1.0 / 1.1);
+  case 'Z': // la caméra s'éloigne
+    camera.zoomer(PAS_ZOOM);
+    glutPostRedisplay();
     break;
-  case 'q': /*la touche 'q' permet de quitter le programme */
+  case 'q': /* q, Q ou Échap quittent le programme */
+  case 'Q':
+  case 27:
     exit(0);
   }
+}
+
+// flèches : la caméra tourne autour de l'araignée
+void clavierSpecial(int touche, int x, int y) {
+  switch (touche) {
+  case GLUT_KEY_LEFT: // par la droite
+    camera.tourner(PAS_ROTATION, 0.0f);
+    break;
+  case GLUT_KEY_RIGHT: // par la gauche
+    camera.tourner(-PAS_ROTATION, 0.0f);
+    break;
+  case GLUT_KEY_UP: // par le bas
+    camera.tourner(0.0f, -PAS_ROTATION);
+    break;
+  case GLUT_KEY_DOWN: // par le haut
+    camera.tourner(0.0f, PAS_ROTATION);
+    break;
+  default:
+    return;
+  }
+  glutPostRedisplay();
 }
 
 void mouse(int button, int state, int x, int y) {
@@ -189,11 +179,8 @@ void mouse(int button, int state, int x, int y) {
 void mousemotion(int x, int y) {
   if (presse) /* si le bouton gauche est presse */
   {
-    /* on modifie les angles de rotation de l'objet
-       en fonction de la position actuelle de la souris et de la derniere
-       position sauvegardee */
-    anglex = anglex + (x - xold);
-    angley = angley + (y - yold);
+    /* la caméra tourne autour de l'araignée, même logique que les flèches */
+    camera.tourner(-(x - xold) * 0.5f, (y - yold) * 0.5f);
     glutPostRedisplay(); /* on demande un rafraichissement de l'affichage */
   }
 
