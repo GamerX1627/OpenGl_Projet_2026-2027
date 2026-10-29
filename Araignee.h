@@ -2,6 +2,9 @@
 #define ARAIGNEE_H
 #include <GL/freeglut.h>
 // includes nécessaires à la déclaration
+#include <array>  // pour stocker les 4 indices de chaque face de l'abdomen
+#include <vector> // pour stocker les sommets et les faces de l'abdomen
+#include "Point.h" // classe Point utilisée pour les sommets de l'abdomen
 class Araignee {
 public:
   Araignee(); // constructeur par défaut
@@ -18,7 +21,13 @@ private:
   float rayonCephalothorax;
   float valEtire; //vaut rayonCephalo/1.1 dans notre cas pour avoir des dimensions qui sont potables
   float hautCephalo; // vaudra rayonCephalo/2
-
+  //dimensions Abdomen
+  float longueurAbdomen; // selon l'axe z
+  float largeurAbdomen;  // selon l'axe x
+  float hauteurAbdomen;  // selon l'axe y
+  // tableaux de l'abdomen (remplis une seule fois dans le constructeur)
+  std::vector<Point> pAbdomen;               // sommets P(i,j) de l'ellipsoide
+  std::vector<std::array<int, 4> > fAbdomen; // indices des 4 sommets de chaque face
   /*dimensions patte;*/
   //cuisse
   float longueurCuisse;
@@ -43,6 +52,18 @@ private:
                        // yeux.....
   void dessinerCephalothorax(); // dans notre cas c'est la partie sur laquelle
                                 // les pattes sont reliées
+  /**
+  methode qui remplit pAbdomen et fAbdomen (calcul des sommets et des faces
+  de l'ellipsoide avec sa représentation paramétrique)
+  @param slices nombre de subdivisions de notre abdomen (méridiens)
+  @param stacks nombre de piles de notre abdomen (parallèles)
+  **/
+  void construireAbdomen(int slices, int stacks);
+  /**
+  methode qui dessine l'abdomen en parcourant pAbdomen et fAbdomen
+  les dimensions sont celles des attributs longueurAbdomen (axe z),
+  largeurAbdomen (axe x) et hauteurAbdomen (axe y)
+  **/
   void dessinerAbdomen();
 };
 
