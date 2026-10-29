@@ -44,6 +44,8 @@
 		<Unit filename="eclairage.cpp" />
 		<Unit filename="eclairage.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="Point.cpp" />
+		<Unit filename="Point.h" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>
