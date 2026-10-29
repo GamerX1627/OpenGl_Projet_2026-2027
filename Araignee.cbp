@@ -41,6 +41,8 @@
 		<Unit filename="Araignee.h" />
 		<Unit filename="camera.cpp" />
 		<Unit filename="camera.h" />
+		<Unit filename="eclairage.cpp" />
+		<Unit filename="eclairage.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />

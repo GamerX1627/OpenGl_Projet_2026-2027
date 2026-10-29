@@ -7,8 +7,10 @@
 #include <cstdlib>
 #include "Araignee.h"
 #include "camera.h"
+#include "eclairage.h"
 
 Camera camera;
+Eclairage eclairage;
 Araignee mkb;
 
 /* gestion de la souris */
@@ -43,6 +45,7 @@ int main(int argc, char **argv) {
   glColor3f(1.0, 1.0, 1.0);
   glPointSize(2.0);
   glEnable(GL_DEPTH_TEST);
+  eclairage.initialiser();
 
   /* enregistrement des fonctions de rappel */
   glutDisplayFunc(affichage);
@@ -74,8 +77,11 @@ void affichage() {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   camera.placer();
+  eclairage.placer(); // après la caméra : lumières fixes dans la scène
   mkb.dessiner();
-  // Repère
+
+  // Repère (sans éclairage pour garder les couleurs pures)
+  glDisable(GL_LIGHTING);
   // axe x en rouge
   glBegin(GL_LINES);
   glColor3f(1.0, 0.0, 0.0);
@@ -94,6 +100,8 @@ void affichage() {
   glVertex3f(0, 0, 0.0);
   glVertex3f(0, 0, 1.0);
   glEnd();
+  if (eclairage.estActif())
+    glEnable(GL_LIGHTING);
 
   glFlush();
 
@@ -134,6 +142,18 @@ void clavier(unsigned char touche, int x, int y) {
     break;
   case 'Z': // la caméra s'éloigne
     camera.zoomer(PAS_ZOOM);
+    glutPostRedisplay();
+    break;
+  case 'l': // allume / éteint l'éclairage
+    eclairage.basculer();
+    glutPostRedisplay();
+    break;
+  case '1': // source éloignée
+    eclairage.basculerEloignee();
+    glutPostRedisplay();
+    break;
+  case '2': // projecteur
+    eclairage.basculerProjecteur();
     glutPostRedisplay();
     break;
   case 'q': /* q, Q ou Échap quittent le programme */
