@@ -23,7 +23,7 @@ Araignee::Araignee() {
 
   // dimensions Abdomen (un peu plus gros que le cephalo)
   longueurAbdomen = 0.8f; // selon z, demi-axe c = 0.25
-  largeurAbdomen = 0.7;  // selon x, demi-axe a = 0.2
+  largeurAbdomen = 0.7f;  // selon x, demi-axe a = 0.2
   hauteurAbdomen = 0.4f;  // selon y, demi-axe b = 0.2
 
   /*dimensions patte*/
@@ -105,9 +105,9 @@ void Araignee::dessinerTete() {
 // methode construireAbdomen : remplit pAbdomen (sommets) et fAbdomen (faces)
 void Araignee::construireAbdomen(int slices, int stacks) {
   // demi-axes de l'ellipsoide (on divise les dimensions totales par 2)
-  const float a = largeurAbdomen / 2.0f;  // selon x
-  const float b = hauteurAbdomen / 2.0f;  // selon y (axe des poles)
-  const float c = longueurAbdomen / 2.0f; // selon z
+  const float a = largeurAbdomen/2.0f ;  // selon x
+  const float b = hauteurAbdomen/2.0f ;  // selon y (axe des poles)
+  const float c = longueurAbdomen/2.0f; // selon z
 
   // on vide les tableaux au cas où on rappelle la méthode
   pAbdomen.clear();
@@ -143,7 +143,7 @@ void Araignee::construireAbdomen(int slices, int stacks) {
 // methode dessinerAbdomen : on parcourt les faces et on envoie les sommets
 void Araignee::dessinerAbdomen() {
   glPushMatrix();
-  glColor3f(0.6f, 0.3f, 0.1f);
+  glColor3f(0.6f, 0.3f, 0.0f);
   // l'abdomen est derrière le cephalo (vers -z) avec 20% de recouvrement
   // comme pour la tête
   glTranslatef(0.0f, 0.0f,
