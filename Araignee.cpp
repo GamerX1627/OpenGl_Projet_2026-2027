@@ -1,13 +1,52 @@
 #include "Araignee.h"
+#include "eclairage.h"
 #include <GL/freeglut.h>
 #include <GL/freeglut_ext.h>
 #include <GL/freeglut_std.h>
 #include <GL/gl.h>
-#include <cmath> // pour cosf et sinf (représentation paramétrique)
+#include <cmath>
+#include <cstdio> // avant jpeglib.h
 #include <iostream>
+#include <jpeglib.h>
 using namespace std;
 
-const float PI = 3.14159265358979f; // pour les angles theta et phi de l'abdomen
+const float PI = 3.14159265358979f;
+
+// charge un jpeg dans un tableau RGBA (lignes à l'envers pour OpenGL)
+static bool chargerJPEG(const char *nom, std::vector<GLubyte> &px, int &w,
+                        int &h) {
+  FILE *f = fopen(nom, "rb");
+  if (!f)
+    return false;
+  jpeg_decompress_struct cinfo;
+  jpeg_error_mgr jerr;
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_decompress(&cinfo);
+  jpeg_stdio_src(&cinfo, f);
+  jpeg_read_header(&cinfo, TRUE);
+  cinfo.out_color_space = JCS_RGB;
+  jpeg_start_decompress(&cinfo);
+  w = cinfo.output_width;
+  h = cinfo.output_height;
+  px.resize(w * h * 4);
+  std::vector<JSAMPLE> ligne(w * 3);
+  while (cinfo.output_scanline < cinfo.output_height) {
+    int y = cinfo.output_scanline;
+    JSAMPROW r = ligne.data();
+    jpeg_read_scanlines(&cinfo, &r, 1);
+    for (int x = 0; x < w; x++) {
+      int d = ((h - 1 - y) * w + x) * 4;
+      px[d] = ligne[3 * x];
+      px[d + 1] = ligne[3 * x + 1];
+      px[d + 2] = ligne[3 * x + 2];
+      px[d + 3] = 255;
+    }
+  }
+  jpeg_finish_decompress(&cinfo);
+  jpeg_destroy_decompress(&cinfo);
+  fclose(f);
+  return true;
+}
 
 Araignee::Araignee() {
   angleHanche = -30.0f;
@@ -21,10 +60,10 @@ Araignee::Araignee() {
                                  // avoir des dimensions qui sont potables
   hautCephalo = rayonCephalothorax / 2.0f; // vaudra rayonCephalo/2
 
-  // dimensions Abdomen (un peu plus gros que le cephalo)
-  longueurAbdomen = 0.8f; // selon z, demi-axe c = 0.25
-  largeurAbdomen = 0.7f;  // selon x, demi-axe a = 0.2
-  hauteurAbdomen = 0.4f;  // selon y, demi-axe b = 0.2
+  // dimensions Abdomen
+  longueurAbdomen = 0.8f;
+  largeurAbdomen = 0.7f;
+  hauteurAbdomen = 0.4f;
 
   /*dimensions patte*/
   // cuisse
@@ -39,16 +78,36 @@ Araignee::Araignee() {
   // dimensions rotule (articulation)
   rayonRotule = 0.034f;
 
-  // remplissage des tableaux de l'abdomen (une seule fois)
-  // les dimensions doivent deja etre initialisées avant cet appel
+  texAbdomen = 0;
   construireAbdomen(32, 32);
+}
+
+// à appeler après glutCreateWindow
+void Araignee::chargerTextures() {
+  std::vector<GLubyte> px;
+  int w, h;
+  if (!chargerJPEG("abdomen.jpg", px, w, h)) {
+    std::cerr << "abdomen.jpg introuvable" << std::endl;
+    return;
+  }
+  glGenTextures(1, &texAbdomen);
+  glBindTexture(GL_TEXTURE_2D, texAbdomen);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, w, h, GL_RGBA, GL_UNSIGNED_BYTE,
+                    px.data());
 }
 
 // methode dessinerCephalothorax
 
 void Araignee::dessinerCephalothorax() {
   glPushMatrix();
-  glColor3f(0.0f, 0.0f, 1.0f);
+  Eclairage::materiau(0.0f, 0.0f, 1.0f);
   glScalef(1.0f, 0.5f,
            1.1); // pour avoir le scale de 1,1 en z dans les dimensions du
                  // cephalo, valEtire vaudra 1/1.1 et le scale en y vaut rayon
@@ -63,16 +122,16 @@ void Araignee::dessinerPatte(float angleBase, float decalagePhase) {
   glRotatef(angleBase, 0, 1, 0);
   glPushMatrix();
   // cuisse de l'araignée
-  glColor3f(0.529f, 0.529f, 0.529f);
+  Eclairage::materiau(0.529f, 0.529f, 0.529f);
   glTranslatef(0, hautCephalo / 2, hautCephalo);
   glRotatef(angleHanche, 1, 0, 0);
   glutSolidCylinder(0.024f, 0.5f, 32, 1);
   // genou de l'araignée
-  glColor3f(1.0f, 0.0, 0.0);
+  Eclairage::materiau(1.0f, 0.0f, 0.0f);
   glTranslatef(0.0f, 0.0f, longueurCuisse);
   glutSolidSphere(0.034f, 16, 16);
   // jambe de l'araignée
-  glColor3f(0.529f, 0.529f, 0.529f);
+  Eclairage::materiau(0.529f, 0.529f, 0.529f);
   glTranslatef(0.0f, 0.0f,
                rayonRotule -
                    (50.0 / 100) *
@@ -81,12 +140,12 @@ void Araignee::dessinerPatte(float angleBase, float decalagePhase) {
   glRotatef(angleGenou, 1, 0, 0);
   glutSolidCylinder(rayonJambe, longueurJambe, 32, 1);
   // cheville de l'araignée;
-  glColor3f(1.0, 0, 0);
+  Eclairage::materiau(1.0f, 0.0f, 0.0f);
   glTranslatef(0, 0, longueurJambe);
   glutSolidSphere(rayonRotule, 16, 16);
   // pied de l'araignée;
-  glColor3f(0.529f, 0.529f, 0.529f);
-  glTranslatef(0, 0, rayonRotule);
+  Eclairage::materiau(0.529f, 0.529f, 0.529f);
+  glTranslatef(0, 0, rayonRotule-rayonRotule*40/100);
   glRotatef(angleCheville, 1, 0, 0);
   glutSolidCylinder(rayonPied, longueurPied, 16, 1);
   glPopMatrix();
@@ -94,7 +153,7 @@ void Araignee::dessinerPatte(float angleBase, float decalagePhase) {
 }
 void Araignee::dessinerTete() {
   glPushMatrix();
-  glColor3f(0.0f, 1.0f, 0.0f);
+  Eclairage::materiau(0.0f, 1.0f, 0.0f);
   glTranslatef(0.0, 0.0,
                rayonCephalothorax + rayonTete -
                    (20 * (rayonCephalothorax + rayonTete) / 100));
@@ -102,60 +161,79 @@ void Araignee::dessinerTete() {
   glPopMatrix();
 }
 
-// methode construireAbdomen : remplit pAbdomen (sommets) et fAbdomen (faces)
+// remplit les sommets, normales, coordonnées de texture et faces
 void Araignee::construireAbdomen(int slices, int stacks) {
-  // demi-axes de l'ellipsoide (on divise les dimensions totales par 2)
-  const float a = largeurAbdomen/2.0f ;  // selon x
-  const float b = hauteurAbdomen/2.0f ;  // selon y (axe des poles)
-  const float c = longueurAbdomen/2.0f; // selon z
+  // demi-axes
+  const float a = largeurAbdomen / 2.0f;
+  const float b = hauteurAbdomen / 2.0f;
+  const float c = longueurAbdomen / 2.0f;
 
-  // on vide les tableaux au cas où on rappelle la méthode
   pAbdomen.clear();
+  nAbdomen.clear();
+  tAbdomen.clear();
   fAbdomen.clear();
 
-  // tableau des sommets P(i,j) : j parcourt les stacks (phi) et i les slices
-  // (theta), indice à plat : k = j * (slices + 1) + i
+  // sommets P(i,j), indice à plat k = j * (slices + 1) + i
   for (int j = 0; j <= stacks; j++) {
-    float phi = -PI / 2.0f + j * PI / stacks; // latitude, de -pi/2 à pi/2
+    float phi = -PI / 2.0f + j * PI / stacks;
     for (int i = 0; i <= slices; i++) {
-      float theta = i * 2.0f * PI / slices; // longitude, de 0 à 2pi
-      pAbdomen.push_back(Point(a * cosf(phi) * cosf(theta), // x
-                               b * sinf(phi),               // y
-                               c * cosf(phi) * sinf(theta))); // z
+      float theta = i * 2.0f * PI / slices;
+      pAbdomen.push_back(Point(a * cosf(phi) * cosf(theta),
+                               b * sinf(phi),
+                               c * cosf(phi) * sinf(theta)));
+
+      // normale = (x/a², y/b², z/c²) normalisée
+      float nx = cosf(phi) * cosf(theta) / a;
+      float ny = sinf(phi) / b;
+      float nz = cosf(phi) * sinf(theta) / c;
+      float norme = sqrtf(nx * nx + ny * ny + nz * nz);
+      nAbdomen.push_back(Point(nx / norme, ny / norme, nz / norme));
+
+      // texture : s = i/slices, t = j/stacks
+      tAbdomen.push_back(Point((float)i / slices, (float)j / stacks, 0.0f));
     }
   }
 
-  // tableau des faces : chaque case (i,j) est délimitée par 4 sommets
-  // dans l'ordre P(i,j), P(i,j+1), P(i+1,j+1), P(i+1,j)
-  // (sens trigonométrique vu de l'extérieur)
+  // faces : P(i,j), P(i,j+1), P(i+1,j+1), P(i+1,j)
   for (int j = 0; j < stacks; j++) {
     for (int i = 0; i < slices; i++) {
       int k = j * (slices + 1) + i;
-      std::array<int, 4> face = {k,                    // P(i,j)
-                                 k + (slices + 1),     // P(i,j+1)
-                                 k + (slices + 1) + 1, // P(i+1,j+1)
-                                 k + 1};               // P(i+1,j)
+      std::array<int, 4> face = {k, k + (slices + 1), k + (slices + 1) + 1,
+                                 k + 1};
       fAbdomen.push_back(face);
     }
   }
 }
 
-// methode dessinerAbdomen : on parcourt les faces et on envoie les sommets
 void Araignee::dessinerAbdomen() {
   glPushMatrix();
-  glColor3f(0.6f, 0.3f, 0.0f);
-  // l'abdomen est derrière le cephalo (vers -z) avec 20% de recouvrement
-  // comme pour la tête
+  bool texture = (texAbdomen != 0);
+  if (texture)
+    Eclairage::materiau(1.0f, 1.0f, 1.0f); // blanc pour garder la texture
+  else
+    Eclairage::materiau(0.6f, 0.3f, 0.0f);
+  // derrière le cephalo avec 20% de recouvrement comme pour la tête
   glTranslatef(0.0f, 0.0f,
                -(rayonCephalothorax * 1.1f + longueurAbdomen / 2.0f) * 0.8f);
+  if (texture) {
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texAbdomen);
+  }
   for (size_t f = 0; f < fAbdomen.size(); f++) {
     glBegin(GL_POLYGON);
     for (int k = 0; k < 4; k++) {
-      const Point &p = pAbdomen[fAbdomen[f][k]];
+      int idx = fAbdomen[f][k];
+      const Point &p = pAbdomen[idx];
+      const Point &n = nAbdomen[idx];
+      const Point &t = tAbdomen[idx];
+      glTexCoord2f(t.x, t.y);
+      glNormal3f(n.x, n.y, n.z);
       glVertex3f(p.x, p.y, p.z);
     }
     glEnd();
   }
+  if (texture)
+    glDisable(GL_TEXTURE_2D);
   glPopMatrix();
 }
 
