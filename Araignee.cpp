@@ -107,7 +107,7 @@ void Araignee::chargerTextures() {
 
 void Araignee::dessinerCephalothorax() {
   glPushMatrix();
-  Eclairage::materiau(0.0f, 0.0f, 1.0f);
+  Eclairage::materiau(0.1f, 0.1f, 0.1f);
   glScalef(1.0f, 0.5f,
            1.1); // pour avoir le scale de 1,1 en z dans les dimensions du
                  // cephalo, valEtire vaudra 1/1.1 et le scale en y vaut rayon
@@ -122,16 +122,16 @@ void Araignee::dessinerPatte(float angleBase, float decalagePhase) {
   glRotatef(angleBase, 0, 1, 0);
   glPushMatrix();
   // cuisse de l'araignée
-  Eclairage::materiau(0.529f, 0.529f, 0.529f);
+  Eclairage::materiau(0.9f, 0.0f, 0.0f);
   glTranslatef(0, hautCephalo / 2, hautCephalo);
   glRotatef(angleHanche, 1, 0, 0);
   glutSolidCylinder(0.024f, 0.5f, 32, 1);
   // genou de l'araignée
-  Eclairage::materiau(1.0f, 0.0f, 0.0f);
+  Eclairage::materiau(0.1f, 0.1f, 0.1f);
   glTranslatef(0.0f, 0.0f, longueurCuisse);
   glutSolidSphere(0.034f, 16, 16);
   // jambe de l'araignée
-  Eclairage::materiau(0.529f, 0.529f, 0.529f);
+  Eclairage::materiau(0.1f, 0.1f, 0.1f);
   glTranslatef(0.0f, 0.0f,
                rayonRotule -
                    (50.0 / 100) *
@@ -140,11 +140,11 @@ void Araignee::dessinerPatte(float angleBase, float decalagePhase) {
   glRotatef(angleGenou, 1, 0, 0);
   glutSolidCylinder(rayonJambe, longueurJambe, 32, 1);
   // cheville de l'araignée;
-  Eclairage::materiau(1.0f, 0.0f, 0.0f);
+  Eclairage::materiau(0.1f, 0.1f, 0.1f);
   glTranslatef(0, 0, longueurJambe);
   glutSolidSphere(rayonRotule, 16, 16);
   // pied de l'araignée;
-  Eclairage::materiau(0.529f, 0.529f, 0.529f);
+  Eclairage::materiau(0.9f, 0.0f, 0.0f);
   glTranslatef(0, 0, rayonRotule-rayonRotule*40/100);
   glRotatef(angleCheville, 1, 0, 0);
   glutSolidCylinder(rayonPied, longueurPied, 16, 1);

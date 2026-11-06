@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   glPointSize(2.0);
   glEnable(GL_DEPTH_TEST);
   eclairage.initialiser();
-  mkb.chargerTextures(); // après glutCreateWindow (il faut un contexte OpenGL)
+  mkb.chargerTextures(); // appelé après le glutCreateWindow
 
   /* enregistrement des fonctions de rappel */
   glutDisplayFunc(affichage);
