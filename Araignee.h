@@ -8,7 +8,8 @@
 class Araignee {
 public:
   Araignee(); // constructeur par défaut
-  void mettreAJour(/*à voir après en fonction de quel paramètres je pourrai le mettre à jour*/);
+  void mettreAJour(float dt);
+  void basculerMarche();
   void dessiner(); // qui va faire appel à mes méthodes privées pour
                          // dessiner explicitement chaque partie de l'araignee
   void chargerTextures(); // à appeler après glutCreateWindow
@@ -16,6 +17,11 @@ private:
   float angleHanche;
   float angleGenou;
   float angleCheville;
+  float temps;
+  float tempsIdle; // avance toujours, même à l'arrêt
+  float facteurIdle; // 1 à l'arrêt, 0 pendant la marche
+  bool marche;
+  float angleMarche; // en degrés
   // dimensions Tête;
   float rayonTete;
   //dimensions Cephalothorax
@@ -63,6 +69,8 @@ private:
   **/
   void construireAbdomen(int slices, int stacks);
   void dessinerAbdomen(); // parcourt les tableaux de l'abdomen
+  float flexion() const; // angle de flexion des pattes en degrés
+  float hauteurPied(float hanche, float genou) const; // par rapport au corps
 };
 
 #endif

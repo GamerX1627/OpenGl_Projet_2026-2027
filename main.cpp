@@ -20,6 +20,9 @@ int xold, yold;
 const GLfloat PAS_ZOOM = 0.5f;     // déplacement de la caméra pour z / Z
 const GLfloat PAS_ROTATION = 5.0f; // rotation de la caméra pour les flèches
 
+/* animation */
+int dernierTemps = 0;
+
 // prototypes de mes fonctions
 void affichage();
 void clavier(unsigned char touche, int x, int y);
@@ -27,6 +30,7 @@ void clavierSpecial(int touche, int x, int y);
 void reshape(int x, int y);
 void mouse(int bouton, int etat, int x, int y);
 void mousemotion(int x, int y);
+void animation(int valeur);
 
 // fonction main qui affiche la fenêtre et qui permet de visualiser tout ce que
 // j'ai fait jusque là
@@ -46,7 +50,7 @@ int main(int argc, char **argv) {
   glPointSize(2.0);
   glEnable(GL_DEPTH_TEST);
   eclairage.initialiser();
-  mkb.chargerTextures(); // appelé après le glutCreateWindow
+  mkb.chargerTextures(); // après glutCreateWindow
 
   /* enregistrement des fonctions de rappel */
   glutDisplayFunc(affichage);
@@ -55,6 +59,8 @@ int main(int argc, char **argv) {
   glutReshapeFunc(reshape);
   glutMouseFunc(mouse);
   glutMotionFunc(mousemotion);
+  dernierTemps = glutGet(GLUT_ELAPSED_TIME);
+  glutTimerFunc(16, animation, 0);
 
   /* Entree dans la boucle principale glut */
   glutMainLoop();
@@ -157,6 +163,9 @@ void clavier(unsigned char touche, int x, int y) {
     eclairage.basculerProjecteur();
     glutPostRedisplay();
     break;
+  case 'm': // marche
+    mkb.basculerMarche();
+    break;
   case 'q': /* q, Q ou Échap quittent le programme */
   case 'Q':
   case 27:
@@ -207,4 +216,14 @@ void mousemotion(int x, int y) {
 
   xold = x; /* sauvegarde des valeurs courante de le position de la souris */
   yold = y;
+}
+
+// appelée toutes les 16 ms
+void animation(int valeur) {
+  int maintenant = glutGet(GLUT_ELAPSED_TIME);
+  float dt = (maintenant - dernierTemps) / 1000.0f;
+  dernierTemps = maintenant;
+  mkb.mettreAJour(dt);
+  glutPostRedisplay();
+  glutTimerFunc(16, animation, 0);
 }

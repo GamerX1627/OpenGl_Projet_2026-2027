@@ -11,6 +11,11 @@
 using namespace std;
 
 const float PI = 3.14159265358979f;
+const float RAYON_TRAJET = 1.2f;
+const float VITESSE_MARCHE = 30.0f; // degrés par seconde
+const float FLEXION = 8.0f;         // degrés
+const float PERIODE_FLEXION = 3.0f; // secondes
+const float TRANSITION_IDLE = 0.5f; // secondes
 
 // charge un jpeg dans un tableau RGBA (lignes à l'envers pour OpenGL)
 static bool chargerJPEG(const char *nom, std::vector<GLubyte> &px, int &w,
@@ -78,8 +83,49 @@ Araignee::Araignee() {
   // dimensions rotule (articulation)
   rayonRotule = 0.034f;
 
+  temps = 0.0f;
+  tempsIdle = 0.0f;
+  facteurIdle = 1.0f;
+  marche = false;
+  angleMarche = 0.0f;
   texAbdomen = 0;
   construireAbdomen(32, 32);
+}
+
+void Araignee::mettreAJour(float dt) {
+  tempsIdle += dt;
+  // la flexion disparaît progressivement pendant la marche
+  float cible = marche ? 0.0f : 1.0f;
+  float pas = dt / TRANSITION_IDLE;
+  if (facteurIdle < cible) {
+    facteurIdle += pas;
+    if (facteurIdle > cible)
+      facteurIdle = cible;
+  } else {
+    facteurIdle -= pas;
+    if (facteurIdle < cible)
+      facteurIdle = cible;
+  }
+  if (!marche)
+    return;
+  temps += dt;
+  angleMarche += VITESSE_MARCHE * dt;
+  if (angleMarche >= 360.0f)
+    angleMarche -= 360.0f;
+}
+
+void Araignee::basculerMarche() { marche = !marche; }
+
+float Araignee::flexion() const {
+  return FLEXION * facteurIdle * sinf(2.0f * PI / PERIODE_FLEXION * tempsIdle);
+}
+
+// hauteur du pied d'une patte par rapport au corps
+float Araignee::hauteurPied(float hanche, float genou) const {
+  const float r = PI / 180.0f;
+  return hautCephalo / 2 - (longueurCuisse + rayonRotule / 2) * sinf(hanche * r) -
+         (longueurJambe + rayonRotule) * sinf((hanche + genou) * r) -
+         longueurPied * sinf((hanche + genou + angleCheville) * r);
 }
 
 // à appeler après glutCreateWindow
@@ -107,7 +153,7 @@ void Araignee::chargerTextures() {
 
 void Araignee::dessinerCephalothorax() {
   glPushMatrix();
-  Eclairage::materiau(0.1f, 0.1f, 0.1f);
+  Eclairage::materiau(0.0f, 0.0f, 1.0f);
   glScalef(1.0f, 0.5f,
            1.1); // pour avoir le scale de 1,1 en z dans les dimensions du
                  // cephalo, valEtire vaudra 1/1.1 et le scale en y vaut rayon
@@ -117,35 +163,40 @@ void Araignee::dessinerCephalothorax() {
 }
 
 void Araignee::dessinerPatte(float angleBase, float decalagePhase) {
+  // 1 cycle par seconde
+  const float w = 2.0f * PI;
+  float f = flexion();
+  float hanche = angleHanche - f + 20.0f * sinf(w * temps + decalagePhase);
+  float genou = angleGenou + f + 15.0f * sinf(w * temps + decalagePhase + 1.0f);
   glPushMatrix(); // pour faire la rotation en fonction de l'angle donné autour
                   // de y
   glRotatef(angleBase, 0, 1, 0);
   glPushMatrix();
   // cuisse de l'araignée
-  Eclairage::materiau(0.9f, 0.0f, 0.0f);
+  Eclairage::materiau(0.529f, 0.529f, 0.529f);
   glTranslatef(0, hautCephalo / 2, hautCephalo);
-  glRotatef(angleHanche, 1, 0, 0);
+  glRotatef(hanche, 1, 0, 0);
   glutSolidCylinder(0.024f, 0.5f, 32, 1);
   // genou de l'araignée
-  Eclairage::materiau(0.1f, 0.1f, 0.1f);
+  Eclairage::materiau(1.0f, 0.0f, 0.0f);
   glTranslatef(0.0f, 0.0f, longueurCuisse);
   glutSolidSphere(0.034f, 16, 16);
   // jambe de l'araignée
-  Eclairage::materiau(0.1f, 0.1f, 0.1f);
+  Eclairage::materiau(0.529f, 0.529f, 0.529f);
   glTranslatef(0.0f, 0.0f,
                rayonRotule -
                    (50.0 / 100) *
                        rayonRotule); // pourquoi le -50% c'est pour que le
                                      // cylindre ne soit pas visible
-  glRotatef(angleGenou, 1, 0, 0);
+  glRotatef(genou, 1, 0, 0);
   glutSolidCylinder(rayonJambe, longueurJambe, 32, 1);
   // cheville de l'araignée;
-  Eclairage::materiau(0.1f, 0.1f, 0.1f);
+  Eclairage::materiau(1.0f, 0.0f, 0.0f);
   glTranslatef(0, 0, longueurJambe);
   glutSolidSphere(rayonRotule, 16, 16);
   // pied de l'araignée;
-  Eclairage::materiau(0.9f, 0.0f, 0.0f);
-  glTranslatef(0, 0, rayonRotule-rayonRotule*40/100);
+  Eclairage::materiau(0.529f, 0.529f, 0.529f);
+  glTranslatef(0, 0, rayonRotule);
   glRotatef(angleCheville, 1, 0, 0);
   glutSolidCylinder(rayonPied, longueurPied, 16, 1);
   glPopMatrix();
@@ -238,15 +289,28 @@ void Araignee::dessinerAbdomen() {
 }
 
 void Araignee::dessiner() {
+  glPushMatrix();
+  // trajectoire circulaire autour du point (RAYON_TRAJET, 0, 0)
+  glTranslatef(RAYON_TRAJET, 0.0f, 0.0f);
+  glRotatef(angleMarche, 0.0f, 1.0f, 0.0f);
+  glTranslatef(-RAYON_TRAJET, 0.0f, 0.0f);
+  // le corps descend quand les pattes fléchissent, les pieds restent au même niveau
+  float f = flexion();
+  glTranslatef(0.0f,
+               hauteurPied(angleHanche, angleGenou) -
+                   hauteurPied(angleHanche - f, angleGenou + f),
+               0.0f);
+  // pattes en damier (décalage 0 ou PI)
   Araignee::dessinerPatte(45.0f, 0.0f);
-  Araignee::dessinerPatte(-45.0f, 0.0f);
-  Araignee::dessinerPatte(75.0f, 0.0f);
+  Araignee::dessinerPatte(-45.0f, PI);
+  Araignee::dessinerPatte(75.0f, PI);
   Araignee::dessinerPatte(-75.0f, 0.0f);
   Araignee::dessinerPatte(105.0f, 0.0f);
-  Araignee::dessinerPatte(-105.0f, 0.0f);
-  Araignee::dessinerPatte(135.0f, 0.0f);
+  Araignee::dessinerPatte(-105.0f, PI);
+  Araignee::dessinerPatte(135.0f, PI);
   Araignee::dessinerPatte(-135.0f, 0.0f);
   Araignee::dessinerTete();
   Araignee::dessinerAbdomen();
   Araignee::dessinerCephalothorax();
+  glPopMatrix();
 }
