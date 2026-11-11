@@ -13,9 +13,9 @@ using namespace std;
 const float PI = 3.14159265358979f;
 const float RAYON_TRAJET = 1.2f;
 const float VITESSE_MARCHE = 30.0f; // degrés par seconde
-const float FLEXION = 8.0f;         // degrés
-const float PERIODE_FLEXION = 3.0f; // secondes
-const float TRANSITION_IDLE = 0.5f; // secondes
+const float FLEXION = 8.0f;
+const float PERIODE_FLEXION = 3.0f;
+const float TRANSITION_IDLE = 0.5f;
 
 // charge un jpeg dans un tableau RGBA (lignes à l'envers pour OpenGL)
 static bool chargerJPEG(const char *nom, std::vector<GLubyte> &px, int &w,
@@ -51,6 +51,29 @@ static bool chargerJPEG(const char *nom, std::vector<GLubyte> &px, int &w,
   jpeg_destroy_decompress(&cinfo);
   fclose(f);
   return true;
+}
+
+// retourne 0 si le fichier est introuvable
+GLuint Araignee::chargerTexture(const char *nom, GLint wrapS, GLint wrapT) {
+  std::vector<GLubyte> px;
+  int w, h;
+  if (!chargerJPEG(nom, px, w, h)) {
+    std::cerr << nom << " introuvable" << std::endl;
+    return 0;
+  }
+  GLuint id;
+  glGenTextures(1, &id);
+  glBindTexture(GL_TEXTURE_2D, id);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, w, h, GL_RGBA, GL_UNSIGNED_BYTE,
+                    px.data());
+  return id;
 }
 
 Araignee::Araignee() {
@@ -94,7 +117,6 @@ Araignee::Araignee() {
 
 void Araignee::mettreAJour(float dt) {
   tempsIdle += dt;
-  // la flexion disparaît progressivement pendant la marche
   float cible = marche ? 0.0f : 1.0f;
   float pas = dt / TRANSITION_IDLE;
   if (facteurIdle < cible) {
@@ -120,7 +142,6 @@ float Araignee::flexion() const {
   return FLEXION * facteurIdle * sinf(2.0f * PI / PERIODE_FLEXION * tempsIdle);
 }
 
-// hauteur du pied d'une patte par rapport au corps
 float Araignee::hauteurPied(float hanche, float genou) const {
   const float r = PI / 180.0f;
   return hautCephalo / 2 - (longueurCuisse + rayonRotule / 2) * sinf(hanche * r) -
@@ -130,23 +151,7 @@ float Araignee::hauteurPied(float hanche, float genou) const {
 
 // à appeler après glutCreateWindow
 void Araignee::chargerTextures() {
-  std::vector<GLubyte> px;
-  int w, h;
-  if (!chargerJPEG("abdomen.jpg", px, w, h)) {
-    std::cerr << "abdomen.jpg introuvable" << std::endl;
-    return;
-  }
-  glGenTextures(1, &texAbdomen);
-  glBindTexture(GL_TEXTURE_2D, texAbdomen);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                  GL_LINEAR_MIPMAP_LINEAR);
-  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-  gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, w, h, GL_RGBA, GL_UNSIGNED_BYTE,
-                    px.data());
+  texAbdomen = chargerTexture("abdomen.jpg", GL_REPEAT, GL_CLAMP_TO_EDGE);
 }
 
 // methode dessinerCephalothorax
@@ -294,7 +299,7 @@ void Araignee::dessiner() {
   glTranslatef(RAYON_TRAJET, 0.0f, 0.0f);
   glRotatef(angleMarche, 0.0f, 1.0f, 0.0f);
   glTranslatef(-RAYON_TRAJET, 0.0f, 0.0f);
-  // le corps descend quand les pattes fléchissent, les pieds restent au même niveau
+  // le corps suit la flexion
   float f = flexion();
   glTranslatef(0.0f,
                hauteurPied(angleHanche, angleGenou) -

@@ -12,6 +12,7 @@
 Camera camera;
 Eclairage eclairage;
 Araignee mkb;
+GLuint texSol = 0;
 
 /* gestion de la souris */
 char presse;
@@ -23,6 +24,11 @@ const GLfloat PAS_ROTATION = 5.0f; // rotation de la caméra pour les flèches
 /* animation */
 int dernierTemps = 0;
 
+/* sol */
+const GLfloat TAILLE_SOL = 5.0f;
+const GLfloat HAUTEUR_SOL = -0.28f;
+const GLfloat REPETITION_SOL = 6.0f;
+
 // prototypes de mes fonctions
 void affichage();
 void clavier(unsigned char touche, int x, int y);
@@ -31,6 +37,7 @@ void reshape(int x, int y);
 void mouse(int bouton, int etat, int x, int y);
 void mousemotion(int x, int y);
 void animation(int valeur);
+void dessinerSol();
 
 // fonction main qui affiche la fenêtre et qui permet de visualiser tout ce que
 // j'ai fait jusque là
@@ -51,6 +58,7 @@ int main(int argc, char **argv) {
   glEnable(GL_DEPTH_TEST);
   eclairage.initialiser();
   mkb.chargerTextures(); // après glutCreateWindow
+  texSol = Araignee::chargerTexture("sol.jpg", GL_REPEAT, GL_REPEAT);
 
   /* enregistrement des fonctions de rappel */
   glutDisplayFunc(affichage);
@@ -85,6 +93,7 @@ void affichage() {
   glLoadIdentity();
   camera.placer();
   eclairage.placer(); // après la caméra : lumières fixes dans la scène
+  dessinerSol();
   mkb.dessiner();
 
   // Repère (sans éclairage pour garder les couleurs pures)
@@ -226,4 +235,27 @@ void animation(int valeur) {
   mkb.mettreAJour(dt);
   glutPostRedisplay();
   glutTimerFunc(16, animation, 0);
+}
+
+// carré texturé sous l'araignée
+void dessinerSol() {
+  if (texSol != 0) {
+    Eclairage::materiau(1.0f, 1.0f, 1.0f, 5.0f);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texSol);
+  } else {
+    Eclairage::materiau(0.2f, 0.5f, 0.2f, 5.0f);
+  }
+  glBegin(GL_QUADS);
+  glNormal3f(0.0f, 1.0f, 0.0f);
+  glTexCoord2f(0.0f, 0.0f);
+  glVertex3f(-TAILLE_SOL, HAUTEUR_SOL, -TAILLE_SOL);
+  glTexCoord2f(0.0f, REPETITION_SOL);
+  glVertex3f(-TAILLE_SOL, HAUTEUR_SOL, TAILLE_SOL);
+  glTexCoord2f(REPETITION_SOL, REPETITION_SOL);
+  glVertex3f(TAILLE_SOL, HAUTEUR_SOL, TAILLE_SOL);
+  glTexCoord2f(REPETITION_SOL, 0.0f);
+  glVertex3f(TAILLE_SOL, HAUTEUR_SOL, -TAILLE_SOL);
+  glEnd();
+  glDisable(GL_TEXTURE_2D);
 }

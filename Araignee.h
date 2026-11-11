@@ -13,13 +13,15 @@ public:
   void dessiner(); // qui va faire appel à mes méthodes privées pour
                          // dessiner explicitement chaque partie de l'araignee
   void chargerTextures(); // à appeler après glutCreateWindow
+  // charge un jpeg dans un objet de texture
+  static GLuint chargerTexture(const char *nom, GLint wrapS, GLint wrapT);
 private:
   float angleHanche;
   float angleGenou;
   float angleCheville;
   float temps;
-  float tempsIdle; // avance toujours, même à l'arrêt
-  float facteurIdle; // 1 à l'arrêt, 0 pendant la marche
+  float tempsIdle;
+  float facteurIdle;
   bool marche;
   float angleMarche; // en degrés
   // dimensions Tête;
@@ -69,8 +71,8 @@ private:
   **/
   void construireAbdomen(int slices, int stacks);
   void dessinerAbdomen(); // parcourt les tableaux de l'abdomen
-  float flexion() const; // angle de flexion des pattes en degrés
-  float hauteurPied(float hanche, float genou) const; // par rapport au corps
+  float flexion() const;
+  float hauteurPied(float hanche, float genou) const;
 };
 
 #endif
