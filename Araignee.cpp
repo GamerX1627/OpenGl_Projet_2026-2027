@@ -78,7 +78,7 @@ GLuint Araignee::chargerTexture(const char *nom, GLint wrapS, GLint wrapT) {
 
 Araignee::Araignee() {
   angleHanche = -30.0f;
-  angleGenou = 50.0f;
+  angleGenou = 65.0f;
   angleCheville = 45.0f;
   rayonTete = 0.15f;
   // dimensions Cephalothorax
