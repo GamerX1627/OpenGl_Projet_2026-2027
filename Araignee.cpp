@@ -181,11 +181,11 @@ void Araignee::dessinerPatte(float angleBase, float decalagePhase) {
   Eclairage::materiau(0.529f, 0.529f, 0.529f);
   glTranslatef(0, hautCephalo / 2, hautCephalo);
   glRotatef(hanche, 1, 0, 0);
-  glutSolidCylinder(0.024f, 0.5f, 32, 1);
+  glutSolidCylinder(rayonCuisse, longueurCuisse, 32, 1);
   // genou de l'araignée
   Eclairage::materiau(1.0f, 0.0f, 0.0f);
   glTranslatef(0.0f, 0.0f, longueurCuisse);
-  glutSolidSphere(0.034f, 16, 16);
+  glutSolidSphere(rayonRotule, 16, 16);
   // jambe de l'araignée
   Eclairage::materiau(0.529f, 0.529f, 0.529f);
   glTranslatef(0.0f, 0.0f,
