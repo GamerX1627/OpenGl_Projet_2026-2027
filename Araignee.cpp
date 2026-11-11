@@ -171,8 +171,10 @@ void Araignee::dessinerPatte(float angleBase, float decalagePhase) {
   // 1 cycle par seconde
   const float w = 2.0f * PI;
   float f = flexion();
-  float hanche = angleHanche - f + 20.0f * sinf(w * temps + decalagePhase);
-  float genou = angleGenou + f + 15.0f * sinf(w * temps + decalagePhase + 1.0f);
+  float s1 = sinf(w * temps + decalagePhase);
+  float s2 = sinf(w * temps + decalagePhase + 1.0f);
+  float hanche = angleHanche - f - 20.0f * fmaxf(0.0f, s1);
+  float genou  = angleGenou  + f - 15.0f * fmaxf(0.0f, s2);
   glPushMatrix(); // pour faire la rotation en fonction de l'angle donné autour
                   // de y
   glRotatef(angleBase, 0, 1, 0);
